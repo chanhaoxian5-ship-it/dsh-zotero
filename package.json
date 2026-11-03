@@ -1,0 +1,19 @@
+{
+  "name": "dsh-zotero",
+  "version": "0.1.0",
+  "description": "Zotero Desktop integration adapted for DeepSeek Harness",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22", "dsh": ">=0.2.1-rc.5 <0.3.0" },
+  "author": "chanhaoxian5-ship-it",
+  "repository": { "type": "git", "url": "git+https://github.com/chanhaoxian5-ship-it/dsh-zotero.git" },
+  "homepage": "https://github.com/chanhaoxian5-ship-it/dsh-zotero#readme",
+  "bugs": { "url": "https://github.com/chanhaoxian5-ship-it/dsh-zotero/issues" },
+  "keywords": ["dsh", "dsh-plugin", "zotero", "research", "citations"],
+  "icon": "./assets/icon.png",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./cordis.patch.yml": "./cordis.patch.yml" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "scripts": { "test": "node --test tests/*.test.mjs" },
+  "files": ["index.mjs", "cordis.patch.yml", "skills/", "assets/", "upstream/", "README.md", "NOTICE.md", "LICENSE"]
+}

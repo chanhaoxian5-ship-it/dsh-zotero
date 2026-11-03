@@ -1,0 +1,8 @@
+* text=auto
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.yml text eol=lf
+# Preserve original upstream bytes, including platform-specific line endings.
+upstream/** -text
+skills/zotero/scripts/zotero.py -text
+*.png binary
