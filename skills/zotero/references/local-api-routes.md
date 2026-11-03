@@ -10,7 +10,7 @@ Important constraints:
 
 - Use `/api/users/0/...` for the local user by default.
 - Local API reads do not require an API key.
-- The local API is read-only; write requests are not supported there.
+- This adapter uses the local API for reads and Connector for imports. Separately authorized Desktop write APIs are outside its scope; do not infer universal write support or lack of support from these helper commands.
 - Atom output is not supported locally.
 - Attachment file URLs and full text can expose local file paths or document text; only retrieve them when the user asks.
 

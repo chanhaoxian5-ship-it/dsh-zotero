@@ -17,7 +17,7 @@
 在终端执行（只在你准备好安装时运行）：
 
 ```powershell
-dsh plugin --profile desktop add 'github:chanhaoxian5-ship-it/dsh-zotero#v0.1.0'
+dsh plugin --profile desktop add 'github:chanhaoxian5-ship-it/dsh-zotero#v0.2.0'
 ```
 
 DSH 根据本包的 `dsh.bundle` 声明自动维护 profile 的依赖和 bundles 列表。无需手工编辑 profile，也无需把 skill 复制到全局目录。插件直接分发可运行的 `.mjs` 和 `.py` 文件，没有安装构建脚本。
@@ -34,7 +34,7 @@ dsh --profile desktop --dump-config
 
 若 `dsh` 不在 PATH，可使用桌面安装目录的 `resources/runtime/cli/bin/dsh.cmd`。如果当前 profile 有其他插件的版本兼容性错误，须先处理对应插件；这类错误与 Zotero 本地 API 是否可连接是两项检查。
 
-也可以从 [Releases](https://github.com/chanhaoxian5-ship-it/dsh-zotero/releases) 下载 `.tgz`，然后执行 `dsh plugin --profile desktop add 'D:/下载目录/dsh-zotero-0.1.0.tgz'`。如需不可变来源，用发布提交的完整 SHA 替代 `#v0.1.0`。本项目目前未发布到 npm。
+也可以从 [Releases](https://github.com/chanhaoxian5-ship-it/dsh-zotero/releases) 下载 `.tgz`，然后执行 `dsh plugin --profile desktop add 'D:/下载目录/dsh-zotero-0.2.0.tgz'`。如需不可变来源，用发布提交的完整 SHA 替代 `#v0.2.0`。本项目目前未发布到 npm。
 
 卸载：
 
@@ -49,7 +49,26 @@ dsh plugin --profile desktop remove dsh-zotero
 - “把这条已核对的 RIS 文献加入 Zotero 当前分类，先检查是否重复。”
 - “把选中的文献导出成 references.bib。”
 
-原脚本默认搜索不能保证命中 DOI；去重应先按标题搜索再核对 DOI。全文接口提供 Zotero 的文本索引，图表、扫描件和页面布局仍需 PDF 阅读工具。插件不内置 DOI 解析、全文或补充材料下载器。正式版与预印本需分别核对。
+0.2.0 的适配层修复了原脚本的 DOI 搜索漏命中，搜索会完整分页读取文库并返回 DOI 和分类 key。全文接口提供 Zotero 的文本索引，图表、扫描件和页面布局仍需 PDF 阅读工具。插件不内置外部 DOI 元数据解析、全文或补充材料下载器。
+
+## 导入可靠性
+
+```powershell
+node skills/zotero/scripts/run-zotero.mjs plan-import --format ris --file 'D:/论文/paper.ris'
+node skills/zotero/scripts/run-zotero.mjs import-ris --file 'D:/论文/paper.ris' --yes
+node skills/zotero/scripts/run-zotero.mjs import-status
+node skills/zotero/scripts/run-zotero.mjs duplicates
+```
+
+- 在整个个人文库中按规范化 DOI 去重，已有条目即使在其他分类里也会跳过；批次内的同 DOI 重复也会跳过。
+- 仅同标题或 DOI 冲突的条目暂停核查，避免误把预印本和正式版合并。
+- 读失败、分页不完整、文库版本变化或目标分类切换时停止；不会把读取失败当作“文库里没有”。
+- 导入前记录 pending，并发进程加锁；响应成功后仍回读新 key 才报告成功。
+- 超时、客户端中断或部分导入后阻止盲目重发，`import-status` 只核对结果，不再次发送。
+
+安全导入目前只支持个人文库；群组的搜索、inventory 和 duplicates 可显式指定 `--library groups/数字ID`。已有条目的分类不会自动改变，已有副本也不会自动合并或删除。BibTeX 宏、字符串拼接、指令和标题内 TeX 命令会要求改用字面值 BibTeX 或 RIS。
+
+导入记录保存在 `~/.dsh/state/dsh-zotero`（可用 `ZOTERO_DSH_STATE_DIR` 修改）；升级时保留该目录。待核查结果不能靠改 session 或清除记录来自动重试。锁只协调使用同一服务地址和状态目录的本插件进程，无法阻止其他软件或原生 UI 同时导入。详情见 [导入与恢复说明](skills/zotero/references/import-reliability.md) 和 [问题与验证记录](docs/import-hardening.md)。
 
 ## 组成
 
@@ -59,12 +78,13 @@ dsh plugin --profile desktop remove dsh-zotero
 | `cordis.patch.yml` | DSH bundle 配置层 |
 | `skills/zotero/SKILL.md` | DSH 使用流程 |
 | `skills/zotero/scripts/run-zotero.mjs` | 选择 Python、设置 UTF-8、透传参数 |
+| `skills/zotero/scripts/zotero_dsh.py` | 完整扫描、身份核对、导入记录、并发锁和回读验证 |
 | `skills/zotero/scripts/zotero.py` | 原始 Zotero API / Connector 脚本 |
 | `upstream/codex-zotero-0.1.2/` | 原 Codex 插件完整副本，排除生成缓存 |
 
 没有额外 MCP 服务或云端 Zotero Key。启动器优先使用 `ZOTERO_PYTHON` 指定的解释器，否则选择 DSH 自带 Python，再尝试 PATH 上的 Python；指定路径不要附加参数。`ZOTERO_LOCAL_BASE_URL` 可修改本地 API 地址。
 
-读取和导入通过本机 HTTP 完成；送入 DSH 模型的文本仍由所选模型服务处理。导入会写入 Zotero 当前选中的文库/分类，操作前应检查目标。
+读取和导入通过本机 HTTP 完成；送入 DSH 模型的文本仍由所选模型服务处理。安全导入写入个人文库当前选中的分类，操作前应检查目标，过程中避免切换分类。
 
 ## 开发与验证
 

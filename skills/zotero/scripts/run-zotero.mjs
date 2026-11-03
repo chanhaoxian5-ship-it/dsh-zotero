@@ -19,7 +19,7 @@ export function main(args, env = process.env) {
     [...prefix, '-c', 'import sys;sys.exit(0 if sys.version_info >= (3,10) else 1)'],
     { env: runtimeEnv, shell: false, windowsHide: true, stdio: 'ignore', timeout: 10000 }).status === 0);
   if (!python) throw new Error('需要 Python >= 3.10；可通过 ZOTERO_PYTHON 指定 python.exe 的完整路径。');
-  const helper = fileURLToPath(new URL('./zotero.py', import.meta.url));
+  const helper = fileURLToPath(new URL('./zotero_dsh.py', import.meta.url));
   const result = spawnSync(python.command, [...python.prefix, '-X', 'utf8', helper, ...args],
     { env: runtimeEnv, shell: false, windowsHide: true, stdio: 'inherit' });
   if (result.error) throw result.error;

@@ -11,7 +11,7 @@ export function apply(ctx) {
   ctx.skills.registerProvider(() => ({
     name: 'dsh-zotero',
     async list() {
-      return [{ name: 'zotero', description: '连接本机 Zotero：搜索文献、读取附件索引全文、导入 RIS/BibTeX、导出引用。',
+      return [{ name: 'zotero', description: '连接本机 Zotero：搜索文献、读取附件索引全文、去重导入 RIS/BibTeX、导出引用。',
         provider: 'dsh-zotero', source: 'bundled', rank: 600,
         invocation: { modelInvocable: true, userInvocable: true },
         resourceBase: { kind: 'directory', path: directory }, path, locator: 'zotero' }];

@@ -11,7 +11,7 @@ description: 使用 Zotero Desktop 搜索本地文库、读取论文附件索引
 
 ```powershell
 node '{{ZOTERO_RUNNER_PS}}' status --json
-node '{{ZOTERO_RUNNER_PS}}' search '标题关键词' --json
+node '{{ZOTERO_RUNNER_PS}}' search '标题关键词或 DOI/DOI URL' --json
 node '{{ZOTERO_RUNNER_PS}}' collections --json
 node '{{ZOTERO_RUNNER_PS}}' tags --json
 ```
@@ -30,15 +30,27 @@ node '{{ZOTERO_RUNNER_PS}}' file-url ATTACHMENTKEY
 
 ## 添加文献
 
-用户明确要求添加即已授权导入，无须重复确认。先按标题搜索去重并核对 DOI（原脚本默认搜索不保证命中 DOI，DOI 搜索为空不能判定条目不存在），获取并核对可信来源的 RIS 或 BibTeX，确认条目版本。脚本不会自动解析 DOI 或下载正文。
+用户明确要求添加即已授权导入，无须重复确认。获取并核对可信来源的 RIS 或 BibTeX，确认版本，再通过以下启动器预览并导入。启动器已接入 DSH 去重层：完整分页读取个人文库，规范化 DOI（支持 DOI URL 与大小写），跨分类检查。不要绕过启动器直接调用上游 zotero.py 来导入。
 
 ```powershell
 node '{{ZOTERO_RUNNER_PS}}' selected-target --json
+node '{{ZOTERO_RUNNER_PS}}' plan-import --format ris --file 'D:/论文工作区/paper.ris'
 node '{{ZOTERO_RUNNER_PS}}' import-ris --file 'D:/论文工作区/paper.ris' --yes
 node '{{ZOTERO_RUNNER_PS}}' import-bibtex --file 'D:/论文工作区/paper.bib' --yes
 ```
 
-导入目标由 Zotero 当前选中的文库/分类决定。selected-target 可能包含大量标签，只保留目标相关字段供判断。导入后搜索核对条目；请求超时先查是否已添加，避免盲目重复导入。不要直接写 Zotero SQLite 数据库。
+`plan-import` 只读：`existing` 表示同 DOI 已在文库，导入命令会跳过；`ambiguous` 表示同标题但身份/版本不确定，整个批次暂停；`duplicate-in-input` 表示输入内重复；只有 `new` 会发送。已有条目在其他分类中仍然算已有；返回 key 供复用，本命令不会自动变更已有条目的分类。
+
+安全导入目前仅支持“我的文库”，不猜测群组库内部 ID 与 Web API group ID 的映射。导入目标为 Zotero 当前分类，两次检查目标是否改变；知道分类内部 ID 时可用 `--expect-collection-id 52`（根目录用 root）。导入过程中不要切换目标；若结果为 verified-target-changed，只核对归属，不重导。
+
+导入前落盘 pending 记录，并对同一服务地址加并发锁；返回 HTTP 201 后也要回读 DOI/title 与新 key 才报成功。超时、进程中断或部分成功时，后续导入会被挡住。用下列命令核对，**不要改 session、删除记录或重新发包来绕过 pending**：
+
+```powershell
+node '{{ZOTERO_RUNNER_PS}}' import-status
+node '{{ZOTERO_RUNNER_PS}}' duplicates
+```
+
+`import-status` 不发送导入请求；能回读全部条目时恢复为 verified，否则保留待核查状态。duplicates 是只读的精确 DOI/标题候选报告，不等于 Zotero 原生完整去重算法。不自动合并或删除已有条目，尤其是已被 Word 引用的条目；复用 key 或在 Zotero 内原生合并。批量 BibTeX 的宏、字符串拼接和标题内 TeX 命令不猜测解析，改用字面值 BibTeX 或 RIS。详见 [导入可靠性](references/import-reliability.md)。
 
 ## 导出与引用
 
@@ -50,4 +62,4 @@ node '{{ZOTERO_RUNNER_PS}}' --help
 
 修改用户文稿须在请求范围内；Zotero item key 不等于 BibTeX citation key。完整命令与选项以 --help 为准，API 路由见 references/local-api-routes.md。不同 Zotero 版本能力有差异，以实际响应为准。
 
-Python 脚本原样来自 OpenAI Zotero 0.1.2，原插件保存在 upstream。连接在本机发生，但送入 DSH 模型的正文仍会进入所选模型服务。
+上游 zotero.py 原样来自 OpenAI Zotero 0.1.2，原插件保存在 upstream。新增 zotero_dsh.py 承接搜索和导入检查。连接在本机发生，但送入 DSH 模型的正文仍会进入所选模型服务。
