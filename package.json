@@ -15,5 +15,5 @@
   "exports": { ".": "./index.mjs", "./cordis.patch.yml": "./cordis.patch.yml" },
   "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
   "scripts": { "test": "node --test tests/*.test.mjs" },
-  "files": ["index.mjs", "cordis.patch.yml", "skills/", "assets/", "upstream/", "README.md", "NOTICE.md", "LICENSE"]
+  "files": ["index.mjs", "cordis.patch.yml", "skills/", "assets/", "upstream/", "docs/", "README.md", "NOTICE.md", "LICENSE", "CHANGELOG.md"]
 }
